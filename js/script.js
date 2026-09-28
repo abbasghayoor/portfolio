@@ -5,6 +5,7 @@
     LINKEDIN_URL: "https://www.linkedin.com/in/ghayoor-abbas-ab565a2b9",
     GITHUB_URL: "https://github.com/abbasghayoor"
   };
+  const FORM_ENDPOINT = "";
   const header = document.querySelector(".site-header");
   const menuToggle = document.querySelector(".menu-toggle");
   const navMenu = document.querySelector(".nav-menu");
@@ -15,6 +16,7 @@
   const profileFallback = document.querySelector("#profile-fallback");
   const contactForm = document.querySelector("#contact-form");
   const formMessage = document.querySelector("#form-message");
+  const submitButton = contactForm?.querySelector('button[type="submit"]');
   const toast = document.querySelector("#toast");
 
   const contactTargets = {
@@ -138,8 +140,10 @@
     });
   }
 
-  contactForm?.addEventListener("submit", (event) => {
+  contactForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (submitButton?.disabled) return;
+
     const fields = [...contactForm.querySelectorAll("input, textarea")];
     const missingField = fields.find((field) => !field.value.trim());
     const email = contactForm.querySelector("#email");
@@ -157,7 +161,39 @@
       email.focus();
       return;
     }
-    formMessage.textContent = "Form validated successfully. Connect an email service to enable message delivery.";
-    contactForm.reset();
+
+    if (!FORM_ENDPOINT) {
+      formMessage.textContent = "The contact form is not configured for message delivery yet.";
+      formMessage.classList.add("error");
+      return;
+    }
+
+    const originalButtonText = submitButton?.innerHTML;
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Sending...";
+    }
+    formMessage.textContent = "Sending...";
+
+    try {
+      const response = await fetch(FORM_ENDPOINT, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body: new FormData(contactForm)
+      });
+
+      if (!response.ok) throw new Error("Message delivery failed.");
+
+      contactForm.reset();
+      formMessage.textContent = "Thanks for reaching out. Your message has been sent successfully.";
+    } catch (error) {
+      formMessage.textContent = "Your message could not be sent. Please try again or email abbassgayoor78@gmail.com directly.";
+      formMessage.classList.add("error");
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
+      }
+    }
   });
 }
